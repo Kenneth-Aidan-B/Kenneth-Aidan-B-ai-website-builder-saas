@@ -2,16 +2,17 @@
 
 import express from 'express';
 import dotenv from 'dotenv';
+import Team from '../models/Team.js';  // ✅ Import Team model
 
 dotenv.config();
 
 const router = express.Router();
 
-// Simple hardcoded admin credentials (for demo — move to DB in production)
+// Hardcoded admin credentials (for demo)
 const ADMIN_EMAIL = 'kennethaidan1404@gmail.com';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Aldin@Orazael';
 
-// Mock database for settings (replace with Firestore or MongoDB in prod)
+// Mock database for pricing settings (replace with DB later)
 let pricingSettings = {
   freePlan: { monthly: 1000000, daily: 200000 },
   modelCosts: {
@@ -31,12 +32,12 @@ router.post('/login', (req, res) => {
   }
 });
 
-// Get current pricing settings
+// ✅ Existing pricing APIs
+
 router.get('/pricing', (req, res) => {
   res.json(pricingSettings);
 });
 
-// Update pricing settings
 router.post('/pricing/update', (req, res) => {
   const { freePlan, modelCosts } = req.body;
 
@@ -44,6 +45,50 @@ router.post('/pricing/update', (req, res) => {
   if (modelCosts) pricingSettings.modelCosts = modelCosts;
 
   res.json({ message: 'Pricing settings updated successfully', pricingSettings });
+});
+
+// ✅ ✅ ✅ NEW: Team Management APIs
+
+// List All Teams
+router.get('/teams', async (req, res) => {
+  try {
+    const teams = await Team.find();
+    res.json(teams);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// View Single Team
+router.get('/teams/:teamId', async (req, res) => {
+  try {
+    const team = await Team.findById(req.params.teamId);
+    res.json(team);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete a Team
+router.delete('/teams/:teamId', async (req, res) => {
+  try {
+    await Team.findByIdAndDelete(req.params.teamId);
+    res.json({ message: 'Team deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Reset Team Token Usage (Optional for Admin Control)
+router.post('/teams/:teamId/reset-tokens', async (req, res) => {
+  try {
+    const team = await Team.findById(req.params.teamId);
+    team.subscription.tokensUsed = 0;
+    await team.save();
+    res.json({ message: 'Team tokens reset' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 export default router;
